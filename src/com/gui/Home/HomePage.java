@@ -70,142 +70,630 @@ public class HomePage extends javax.swing.JFrame {
     private javax.swing.JLabel jLabelPhoneAllowance;
     private javax.swing.JLabel jLabelClothingAllowance;
 
+    // ── PayrollDisplay (lazy-loaded modal) ──────────────────────────────────
     private PayrollDisplay payrollDisplay;
+
+    // ── Sidebar / Dashboard state ────────────────────────────────────────────
+    private javax.swing.JPanel  contentArea;   // CardLayout host
+    private java.awt.CardLayout cardLayout;
+    private javax.swing.JButton activeNavBtn;  // tracks highlighted nav item
+    private javax.swing.JLabel  clockStatusLbl;// "Status: IN" / "Status: OUT"
 
     // Constructor: receive User info
     public HomePage(User user) {
         this.currentUser = user;
         initComponents();
-        // ── role-based button controls ───────────────────────────────
-        String role = currentUser.getuPosition();
-        // Employee Management → IT, HR Manager, HR Team Leader, **HR Rank and File**
-        boolean canManageEmployees
-                = role.equals("IT Operations and Systems")
-                || role.equals("HR Manager")
-                || role.equals("HR Team Leader")
-                || role.equals("HR Rank and File");
-        jButton3.setVisible(canManageEmployees);
-
-        // Payroll Management → CFO, Payroll Manager, Payroll Team Leader, **Payroll Rank and File**
-        boolean canManagePayroll
-                = role.equals("Chief Finance Officer")
-                || role.equals("Payroll Manager")
-                || role.equals("Payroll Team Leader")
-                || role.equals("Payroll Rank and File");
-        jButton2.setVisible(canManagePayroll);
-
-        boolean canSystemMaintenance
-                = role.equals("IT Operations and Systems");
-        jButton9.setVisible(canSystemMaintenance);
-
-        //jPanel2 method
-        setupJPanel2(); // we will define this method
-
-        // ── Leave navigation buttons (added programmatically) ────────
-        addLeaveButtons();
-
-        setResizable(false);// Removes maximize and resizing
-        setLocationRelativeTo(null); // This centers the window on the screen
-        pack();// Fit frame to preferred size
-        applyTheme(); // Apply modern color theme
-
-        // Set the company logo on the left
-        SwingUtilities.invokeLater(() -> setLogoOnLabel(jLabel1, "/com/gui/images/LoginIcons/RevisedLogo.png"));
-        SwingUtilities.invokeLater(() -> setProfileImage(jLabel5, currentUser.getuEmpId()));
-        setUserInfo();
+        buildDashboard();
         startClock();
-
     }
 
-    // ── Theme Application ───────────────────────────────────────────────
-    private void applyTheme() {
-        // ── Content pane ──
-        getContentPane().setBackground(Theme.PAGE_BG);
+    // ════════════════════════════════════════════════════════════════════════
+    //  DASHBOARD BUILDER  –  replaces content pane after initComponents()
+    // ════════════════════════════════════════════════════════════════════════
+    private void buildDashboard() {
+        String role = (currentUser != null) ? currentUser.getuPosition() : "";
 
-        // ── Sidebar (jPanel1) ──
-        jPanel1.setBackground(Theme.SIDEBAR_BG);
-        jPanel1.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 1));
-        // Right-edge separator line
-        jPanel1.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 0, 1, new java.awt.Color(0x1E293B)));
+        // ── Frame setup ──────────────────────────────────────────────────────
+        setTitle("MotorPH Payroll System");
+        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setMinimumSize(new java.awt.Dimension(1050, 680));
+        setResizable(true);
 
-        // Sidebar MENU label
-        jLabel2.setText("MOTORPH");
-        jLabel2.setForeground(Theme.TEXT_ON_DARK);
-        jLabel2.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
-        jLabel2.setBackground(Theme.SIDEBAR_BG);
-        jLabel2.setOpaque(true);
-        jLabel2.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-            javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(0x1E293B)),
-            javax.swing.BorderFactory.createEmptyBorder(6, 0, 6, 0)
+        // ── Root layout ──────────────────────────────────────────────────────
+        java.awt.Container cp = getContentPane();
+        cp.removeAll();
+        cp.setLayout(new java.awt.BorderLayout());
+        cp.setBackground(Theme.PAGE_BG);
+
+        // ════════════════════════════════
+        //  A. SIDEBAR
+        // ════════════════════════════════
+        javax.swing.JPanel sidebar = new javax.swing.JPanel();
+        sidebar.setBackground(Theme.SIDEBAR_BG);
+        sidebar.setPreferredSize(new java.awt.Dimension(220, 0));
+        sidebar.setLayout(new java.awt.BorderLayout());
+
+        // ── A1. Sidebar top: Logo + company name ─────────────────────────────
+        javax.swing.JPanel sideTop = new javax.swing.JPanel();
+        sideTop.setBackground(Theme.SIDEBAR_BG);
+        sideTop.setLayout(new java.awt.BorderLayout(0, 4));
+        sideTop.setBorder(javax.swing.BorderFactory.createEmptyBorder(16, 16, 12, 16));
+
+        javax.swing.JLabel logoName = new javax.swing.JLabel("MotorPH", javax.swing.SwingConstants.LEFT);
+        logoName.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
+        logoName.setForeground(Theme.TEXT_ON_DARK);
+
+        javax.swing.JLabel logoSub = new javax.swing.JLabel("HR & Payroll System", javax.swing.SwingConstants.LEFT);
+        logoSub.setFont(Theme.FONT_SMALL);
+        logoSub.setForeground(new java.awt.Color(0x64748B));
+
+        javax.swing.JSeparator logoSep = new javax.swing.JSeparator();
+        logoSep.setForeground(new java.awt.Color(0x1E293B));
+        logoSep.setBackground(new java.awt.Color(0x1E293B));
+
+        sideTop.add(logoName, java.awt.BorderLayout.NORTH);
+        sideTop.add(logoSub,  java.awt.BorderLayout.CENTER);
+        sideTop.add(logoSep,  java.awt.BorderLayout.SOUTH);
+
+        // ── A2. Nav items (scrollable) ───────────────────────────────────────
+        javax.swing.JPanel navPanel = new javax.swing.JPanel();
+        navPanel.setBackground(Theme.SIDEBAR_BG);
+        navPanel.setLayout(new javax.swing.BoxLayout(navPanel, javax.swing.BoxLayout.Y_AXIS));
+        navPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 0, 8, 0));
+
+        // Helper to create a nav button
+        // Args: label, emoji prefix, accent color (null = default), card name, always-visible
+        // Role-based access map
+        boolean canPayroll = role.equals("Chief Finance Officer")
+                || role.equals("Payroll Manager") || role.equals("Payroll Team Leader")
+                || role.equals("Payroll Rank and File")
+                || role.equals("IT Operations and Systems")
+                || role.equals("Chief Executive Officer")
+                || role.equals("Chief Operating Officer");
+        boolean canEmployees = role.equals("IT Operations and Systems")
+                || role.equals("HR Manager") || role.equals("HR Team Leader")
+                || role.equals("HR Rank and File");
+        boolean canAttendance = true;
+        boolean canSysMaint = role.equals("IT Operations and Systems");
+        boolean canApprove = role.equals("HR Manager") || role.equals("HR Team Leader")
+                || role.equals("HR Rank and File")
+                || role.equals("Chief Executive Officer")
+                || role.equals("Chief Operating Officer")
+                || role.equals("Chief Finance Officer")
+                || role.equals("Payroll Manager") || role.equals("Account Manager")
+                || role.equals("Accounting Head")
+                || role.equals("IT Operations and Systems");
+
+        // ── Profile nav (all roles) ──
+        javax.swing.JButton btnProfile = makeNavBtn("\uD83D\uDC64  Profile", null);
+        navPanel.add(btnProfile);
+
+        // ── Attendance nav ──
+        javax.swing.JButton btnAttendance = makeNavBtn("\uD83D\uDDD3  Attendance", null);
+        navPanel.add(btnAttendance);
+
+        // ── Payroll nav (role-restricted) ──
+        javax.swing.JButton btnPayroll = null;
+        if (canPayroll) {
+            btnPayroll = makeNavBtn("\uD83D\uDCB3  Payroll", new java.awt.Color(0x1D4ED8)); // blue accent
+            navPanel.add(btnPayroll);
+        }
+
+        // ── Employees nav (HR roles) ──
+        javax.swing.JButton btnEmployees = null;
+        if (canEmployees) {
+            btnEmployees = makeNavBtn("\uD83D\uDC65  Employees", new java.awt.Color(0x0F766E)); // teal accent
+            navPanel.add(btnEmployees);
+        }
+
+        // ── Leave Request nav (all) ──
+        javax.swing.JButton btnLeaveReq = makeNavBtn("\uD83D\uDCDD  Leave Request", new java.awt.Color(0x059669)); // green
+        navPanel.add(btnLeaveReq);
+
+        // ── Leave Status (all) ──
+        javax.swing.JButton btnLeaveStatus = makeNavBtn("\uD83D\uDCCB  Leave Status", null);
+        navPanel.add(btnLeaveStatus);
+
+        // ── Leave Approval (managers) ──
+        javax.swing.JButton btnLeaveApproval = null;
+        if (canApprove) {
+            btnLeaveApproval = makeNavBtn("\u2714  Leave Approval", new java.awt.Color(0xD97706)); // amber
+            navPanel.add(btnLeaveApproval);
+        }
+
+        // ── System Maintenance (IT only) ──
+        javax.swing.JButton btnSysMaint = null;
+        if (canSysMaint) {
+            btnSysMaint = makeNavBtn("\u2699  System Maint.", new java.awt.Color(0x7C3AED)); // purple
+            navPanel.add(btnSysMaint);
+        }
+
+        // ── View Payroll Details ──
+        javax.swing.JButton btnViewPayroll = makeNavBtn("\uD83D\uDCC4  Payroll Details", null);
+        navPanel.add(btnViewPayroll);
+
+        navPanel.add(javax.swing.Box.createVerticalGlue());
+
+        // ── A3. Sidebar bottom: user info + logout ───────────────────────────
+        javax.swing.JPanel sideBottom = new javax.swing.JPanel();
+        sideBottom.setBackground(new java.awt.Color(0x0A0F1C));
+        sideBottom.setLayout(new java.awt.BorderLayout(0, 6));
+        sideBottom.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 16, 14, 16));
+
+        String fullName = (currentUser != null)
+                ? currentUser.getuFirstName() + " " + currentUser.getuLastName() : "Employee";
+        javax.swing.JLabel userNameLbl = new javax.swing.JLabel(fullName);
+        userNameLbl.setFont(Theme.FONT_BUTTON);
+        userNameLbl.setForeground(Theme.TEXT_ON_DARK);
+
+        // Role badge
+        String badgeRole = role.isEmpty() ? "Employee" : role;
+        // Shorten very long role names
+        if (role.startsWith("IT Operations")) badgeRole = "IT";
+        else if (role.contains("Chief Executive")) badgeRole = "CEO";
+        else if (role.contains("Chief Operating")) badgeRole = "COO";
+        else if (role.contains("Chief Finance")) badgeRole = "CFO";
+        else if (role.contains("Chief Marketing")) badgeRole = "CMO";
+        else if (role.length() > 12) badgeRole = "STAFF";
+
+        javax.swing.JLabel roleBadge = new javax.swing.JLabel(badgeRole.toUpperCase());
+        roleBadge.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 10));
+        roleBadge.setForeground(new java.awt.Color(0x93C5FD));
+        roleBadge.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 4, 0));
+
+        javax.swing.JButton btnLogout = new javax.swing.JButton("\u2190  Logout");
+        btnLogout.setBackground(new java.awt.Color(0x7F1D1D));
+        btnLogout.setForeground(Theme.TEXT_ON_DARK);
+        btnLogout.setFont(Theme.FONT_BUTTON);
+        btnLogout.setFocusPainted(false);
+        btnLogout.setBorderPainted(false);
+        btnLogout.setOpaque(true);
+        btnLogout.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        btnLogout.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 34));
+        btnLogout.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        btnLogout.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 12, 8, 12));
+
+        javax.swing.JPanel userInfo = new javax.swing.JPanel(new java.awt.BorderLayout(0, 2));
+        userInfo.setBackground(new java.awt.Color(0x0A0F1C));
+        userInfo.add(roleBadge,   java.awt.BorderLayout.NORTH);
+        userInfo.add(userNameLbl, java.awt.BorderLayout.CENTER);
+
+        sideBottom.add(new javax.swing.JSeparator(), java.awt.BorderLayout.NORTH);
+        sideBottom.add(userInfo,    java.awt.BorderLayout.CENTER);
+        sideBottom.add(btnLogout,   java.awt.BorderLayout.SOUTH);
+
+        // Assemble sidebar
+        sideBottom.setPreferredSize(new java.awt.Dimension(220, 110));
+        javax.swing.JScrollPane navScroll = new javax.swing.JScrollPane(navPanel,
+                javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        navScroll.setBorder(null);
+        navScroll.setBackground(Theme.SIDEBAR_BG);
+        navScroll.getViewport().setBackground(Theme.SIDEBAR_BG);
+
+        sidebar.add(sideTop,    java.awt.BorderLayout.NORTH);
+        sidebar.add(navScroll,  java.awt.BorderLayout.CENTER);
+        sidebar.add(sideBottom, java.awt.BorderLayout.SOUTH);
+
+        // ════════════════════════════════
+        //  B. TOP BAR
+        // ════════════════════════════════
+        javax.swing.JPanel topBar = new javax.swing.JPanel(new java.awt.BorderLayout(0, 0));
+        topBar.setBackground(Theme.CARD_BG);
+        topBar.setPreferredSize(new java.awt.Dimension(0, 56));
+        topBar.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, Theme.BORDER_COLOR),
+            javax.swing.BorderFactory.createEmptyBorder(0, 20, 0, 16)
         ));
 
-        // Date / Time labels
-        jLabel3.setForeground(new java.awt.Color(0x94A3B8));
+        String firstName2 = (currentUser != null) ? currentUser.getuFirstName() + " " + currentUser.getuLastName() : "Employee";
+        javax.swing.JLabel welcomeLbl = new javax.swing.JLabel("Welcome, " + firstName2);
+        welcomeLbl.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 16));
+        welcomeLbl.setForeground(Theme.TEXT_PRIMARY);
+
+        // Right side: Status + Clock In + Clock Out
+        javax.swing.JPanel topRight = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 10, 10));
+        topRight.setBackground(Theme.CARD_BG);
+
+        // Date/Time label (live clock)
+        jLabel3 = new javax.swing.JLabel();
         jLabel3.setFont(Theme.FONT_SMALL);
-        jLabel3.setBackground(Theme.SIDEBAR_BG);
-        jLabel3.setOpaque(true);
-        jLabel4.setForeground(new java.awt.Color(0x94A3B8));
+        jLabel3.setForeground(Theme.TEXT_MUTED);
+        jLabel4 = new javax.swing.JLabel();
         jLabel4.setFont(Theme.FONT_SMALL);
-        jLabel4.setBackground(Theme.SIDEBAR_BG);
-        jLabel4.setOpaque(true);
+        jLabel4.setForeground(Theme.TEXT_MUTED);
 
-        // Logo label
-        jLabel1.setBackground(Theme.SIDEBAR_BG);
-        jLabel1.setOpaque(true);
+        clockStatusLbl = new javax.swing.JLabel("Status: OUT");
+        clockStatusLbl.setFont(Theme.FONT_BUTTON);
+        clockStatusLbl.setForeground(Theme.DANGER_RED);
 
-        // ── Sidebar navigation buttons ──
-        for (java.awt.Component c : jPanel1.getComponents()) {
-            if (c instanceof javax.swing.JButton btn) {
-                if (btn == jButton4) {
-                    Theme.successButton(btn);
-                    btn.setText("▶  Clock In");
-                } else if (btn == jButton5) {
-                    Theme.dangerButton(btn);
-                    btn.setText("■  Clock Out");
-                } else if (btn == jButton6) {
-                    Theme.dangerButton(btn);
-                    btn.setText("⇠  Logout");
-                } else {
-                    Theme.sidebarButton(btn);
-                }
-            }
+        javax.swing.JButton topClockIn = new javax.swing.JButton("\u25B6  Clock In");
+        topClockIn.setBackground(Theme.SUCCESS_GREEN);
+        topClockIn.setForeground(Theme.TEXT_ON_DARK);
+        topClockIn.setFont(Theme.FONT_BUTTON);
+        topClockIn.setFocusPainted(false);
+        topClockIn.setBorderPainted(false);
+        topClockIn.setOpaque(true);
+        topClockIn.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        topClockIn.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 14, 6, 14));
+
+        javax.swing.JButton topClockOut = new javax.swing.JButton("\u25A0  Clock Out");
+        topClockOut.setBackground(new java.awt.Color(0xCBD5E1));
+        topClockOut.setForeground(new java.awt.Color(0x64748B));
+        topClockOut.setFont(Theme.FONT_BUTTON);
+        topClockOut.setFocusPainted(false);
+        topClockOut.setBorderPainted(false);
+        topClockOut.setOpaque(true);
+        topClockOut.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        topClockOut.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 14, 6, 14));
+
+        topRight.add(jLabel3);
+        topRight.add(clockStatusLbl);
+        topRight.add(topClockIn);
+        topRight.add(topClockOut);
+
+        topBar.add(welcomeLbl, java.awt.BorderLayout.WEST);
+        topBar.add(topRight,   java.awt.BorderLayout.EAST);
+
+        // ════════════════════════════════
+        //  C. CARD LAYOUT CONTENT
+        // ════════════════════════════════
+        cardLayout = new java.awt.CardLayout();
+        contentArea = new javax.swing.JPanel(cardLayout);
+        contentArea.setBackground(Theme.PAGE_BG);
+
+        // ── Card: Profile ──────────────────────────────────────────────────
+        contentArea.add(buildProfileCard(), "profile");
+
+        // ── Card: Attendance ──────────────────────────────────────────────
+        contentArea.add(buildPlaceholderCard("Attendance", "\uD83D\uDDD3",
+                "View and manage your daily time records.",
+                new java.awt.Color(0x1D4ED8)), "attendance");
+
+        // ── Card: Payroll ─────────────────────────────────────────────────
+        if (canPayroll) contentArea.add(buildPlaceholderCard("Payroll Management", "\uD83D\uDCB3",
+                "Process payroll, view payslips and deductions.",
+                new java.awt.Color(0x1D4ED8)), "payroll");
+
+        // ── Card: Employees ───────────────────────────────────────────────
+        if (canEmployees) contentArea.add(buildPlaceholderCard("Employee Management", "\uD83D\uDC65",
+                "Add, edit or view employee records.",
+                new java.awt.Color(0x0F766E)), "employees");
+
+        // ── Card: Leave Request ───────────────────────────────────────────
+        contentArea.add(buildPlaceholderCard("Leave Request", "\uD83D\uDCDD",
+                "File a new leave request.",
+                new java.awt.Color(0x059669)), "leaveReq");
+
+        // ── Card: Leave Status ────────────────────────────────────────────
+        contentArea.add(buildPlaceholderCard("Leave Status", "\uD83D\uDCCB",
+                "Check the status of your leave applications.",
+                new java.awt.Color(0x1E293B)), "leaveStatus");
+
+        // ── Card: Leave Approval ──────────────────────────────────────────
+        if (canApprove) contentArea.add(buildPlaceholderCard("Leave Approval", "\u2714",
+                "Review and approve pending leave requests.",
+                new java.awt.Color(0xD97706)), "leaveApproval");
+
+        // ── Card: System Maintenance ──────────────────────────────────────
+        if (canSysMaint) contentArea.add(buildPlaceholderCard("System Maintenance", "\u2699",
+                "Manage system backups and maintenance tasks.",
+                new java.awt.Color(0x7C3AED)), "sysMaint");
+
+        // ── Card: Payroll Details ─────────────────────────────────────────
+        contentArea.add(buildPlaceholderCard("Payroll Details", "\uD83D\uDCC4",
+                "View your detailed payroll computation.",
+                new java.awt.Color(0x1D4ED8)), "payrollDetails");
+
+        // ════════════════════════════════
+        //  D. WIRE NAV ACTIONS
+        // ════════════════════════════════
+        setNavActive(btnProfile);
+        btnProfile.addActionListener(e -> { setNavActive(btnProfile); cardLayout.show(contentArea, "profile"); });
+        btnAttendance.addActionListener(e -> { setNavActive(btnAttendance); cardLayout.show(contentArea, "attendance"); openModal(() -> jButton7ActionPerformed(null)); });
+        btnLeaveReq.addActionListener(e -> { setNavActive(btnLeaveReq); new com.gui.Leave.LeaveRequestForm(com.motorph.util.AppContext.getInstance().getCurrentEmployee()).setVisible(true); });
+        btnLeaveStatus.addActionListener(e -> { setNavActive(btnLeaveStatus); cardLayout.show(contentArea, "leaveStatus"); });
+        btnViewPayroll.addActionListener(e -> { setNavActive(btnViewPayroll); jButton10ActionPerformed(null); });
+
+        if (btnPayroll != null) {
+            final javax.swing.JButton bp = btnPayroll;
+            bp.addActionListener(e -> { setNavActive(bp); jButton2ActionPerformed(null); });
         }
-        // Rename the known field-level buttons with icon prefixes
-        jButton2.setText("  \uD83D\uDCB3  Payroll");
-        jButton3.setText("  \uD83D\uDC65  Employees");
-        jButton7.setText("  \uD83D\uDDD3  Attendance");
-        jButton9.setText("  \u2699  System Maintenance");
-        jButton10.setText("  \uD83D\uDCC4  View Payroll Details");
+        if (btnEmployees != null) {
+            final javax.swing.JButton be = btnEmployees;
+            be.addActionListener(e -> { setNavActive(be); jButton3ActionPerformed(null); });
+        }
+        if (btnLeaveApproval != null) {
+            final javax.swing.JButton bla = btnLeaveApproval;
+            bla.addActionListener(e -> { setNavActive(bla); new com.gui.Leave.LeaveApprovalForm(com.motorph.util.AppContext.getInstance().getCurrentEmployee()).setVisible(true); });
+        }
+        if (btnSysMaint != null) {
+            final javax.swing.JButton bsm = btnSysMaint;
+            bsm.addActionListener(e -> { setNavActive(bsm); jButton9ActionPerformed(null); });
+        }
 
-        // Logout button - positioned separately
-        Theme.dangerButton(jButton6);
-        jButton6.setText("Logout");
+        // Clock In / Clock Out actions (reuse existing logic)
+        topClockIn.addActionListener(e -> {
+            jButton4ActionPerformed(null);
+            clockStatusLbl.setText("Status: IN");
+            clockStatusLbl.setForeground(Theme.SUCCESS_GREEN);
+            topClockIn.setBackground(new java.awt.Color(0xCBD5E1));
+            topClockIn.setForeground(new java.awt.Color(0x64748B));
+            topClockOut.setBackground(Theme.DANGER_RED);
+            topClockOut.setForeground(Theme.TEXT_ON_DARK);
+        });
+        topClockOut.addActionListener(e -> {
+            jButton5ActionPerformed(null);
+            clockStatusLbl.setText("Status: OUT");
+            clockStatusLbl.setForeground(Theme.DANGER_RED);
+            topClockOut.setBackground(new java.awt.Color(0xCBD5E1));
+            topClockOut.setForeground(new java.awt.Color(0x64748B));
+            topClockIn.setBackground(Theme.SUCCESS_GREEN);
+            topClockIn.setForeground(Theme.TEXT_ON_DARK);
+        });
+        btnLogout.addActionListener(e -> jButton6ActionPerformed(null));
 
-        // ── Profile card (jPanel3) ──
-        jPanel3.setBackground(Theme.CARD_BG);
-        jPanel3.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-            javax.swing.BorderFactory.createMatteBorder(3, 0, 0, 0, Theme.PRIMARY_BLUE),  // blue top accent
+        // ── Assemble root ──────────────────────────────────────────────────
+        javax.swing.JPanel mainArea = new javax.swing.JPanel(new java.awt.BorderLayout());
+        mainArea.setBackground(Theme.PAGE_BG);
+        mainArea.add(topBar,     java.awt.BorderLayout.NORTH);
+        mainArea.add(contentArea, java.awt.BorderLayout.CENTER);
+
+        cp.add(sidebar,  java.awt.BorderLayout.WEST);
+        cp.add(mainArea, java.awt.BorderLayout.CENTER);
+
+        pack();
+        setSize(1100, 720);
+        setLocationRelativeTo(null);
+    }
+
+    /** Make a sidebar nav button. accent=null uses default sidebar style. */
+    private javax.swing.JButton makeNavBtn(String text, java.awt.Color accent) {
+        javax.swing.JButton btn = new javax.swing.JButton(text);
+        btn.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 40));
+        btn.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        btn.setFont(Theme.FONT_BODY);
+        btn.setBackground(Theme.SIDEBAR_BG);
+        btn.setForeground(new java.awt.Color(0xCBD5E1));
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setOpaque(true);
+        btn.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        btn.setBorder(javax.swing.BorderFactory.createEmptyBorder(9, 20, 9, 16));
+        final java.awt.Color base = Theme.SIDEBAR_BG;
+        final java.awt.Color hover = new java.awt.Color(0x1E293B);
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent e) { if (btn != activeNavBtn) btn.setBackground(hover); }
+            public void mouseExited(java.awt.event.MouseEvent e)  { if (btn != activeNavBtn) btn.setBackground(base);  }
+        });
+        return btn;
+    }
+
+    /** Highlight the active nav button, reset others. */
+    private void setNavActive(javax.swing.JButton btn) {
+        if (activeNavBtn != null) {
+            activeNavBtn.setBackground(Theme.SIDEBAR_BG);
+            activeNavBtn.setForeground(new java.awt.Color(0xCBD5E1));
+            activeNavBtn.setBorder(javax.swing.BorderFactory.createEmptyBorder(9, 20, 9, 16));
+        }
+        activeNavBtn = btn;
+        btn.setBackground(new java.awt.Color(0x1E40AF));   // active blue
+        btn.setForeground(Theme.TEXT_ON_DARK);
+        // Left accent bar
+        btn.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createMatteBorder(0, 3, 0, 0, new java.awt.Color(0x60A5FA)),
+            javax.swing.BorderFactory.createEmptyBorder(9, 17, 9, 16)
+        ));
+    }
+
+    /** Open a modal action without navigating the card deck. */
+    private void openModal(Runnable r) { r.run(); }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  PROFILE CARD
+    // ════════════════════════════════════════════════════════════════════════
+    private javax.swing.JPanel buildProfileCard() {
+        javax.swing.JPanel root = new javax.swing.JPanel(new java.awt.BorderLayout(0, 0));
+        root.setBackground(Theme.PAGE_BG);
+
+        // Page title
+        javax.swing.JLabel titleLbl = new javax.swing.JLabel("  My Profile");
+        titleLbl.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 20));
+        titleLbl.setForeground(Theme.TEXT_PRIMARY);
+        titleLbl.setBorder(javax.swing.BorderFactory.createEmptyBorder(20, 18, 8, 18));
+        root.add(titleLbl, java.awt.BorderLayout.NORTH);
+
+        // Scrollable body
+        javax.swing.JPanel body = new javax.swing.JPanel(new java.awt.BorderLayout(16, 16));
+        body.setBackground(Theme.PAGE_BG);
+        body.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 18, 18, 18));
+
+        // ── Left: Photo + upload + name ──────────────────────────────────────
+        javax.swing.JPanel photoPane = new javax.swing.JPanel();
+        photoPane.setLayout(new javax.swing.BoxLayout(photoPane, javax.swing.BoxLayout.Y_AXIS));
+        photoPane.setBackground(Theme.CARD_BG);
+        photoPane.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(Theme.BORDER_COLOR, 1),
+            javax.swing.BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+        photoPane.setPreferredSize(new java.awt.Dimension(200, 0));
+
+        // Reuse jLabel5 for the profile photo
+        jLabel5 = new javax.swing.JLabel();
+        jLabel5.setPreferredSize(new java.awt.Dimension(120, 120));
+        jLabel5.setMinimumSize(new java.awt.Dimension(120, 120));
+        jLabel5.setMaximumSize(new java.awt.Dimension(120, 120));
+        jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel5.setBackground(new java.awt.Color(0xE2E8F0));
+        jLabel5.setOpaque(true);
+        jLabel5.setBorder(javax.swing.BorderFactory.createLineBorder(Theme.BORDER_COLOR, 1));
+        jLabel5.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+
+        String empFullName = (currentUser != null)
+                ? currentUser.getuFirstName() + " " + currentUser.getuLastName() : "";
+        javax.swing.JLabel photoName = new javax.swing.JLabel("<html><center>" + empFullName + "</center></html>",
+                javax.swing.SwingConstants.CENTER);
+        photoName.setFont(Theme.FONT_HEADER);
+        photoName.setForeground(Theme.TEXT_PRIMARY);
+        photoName.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+
+        String pos = (currentUser != null) ? currentUser.getuPosition() : "";
+        javax.swing.JLabel photoPos = new javax.swing.JLabel("<html><center>" + pos + "</center></html>",
+                javax.swing.SwingConstants.CENTER);
+        photoPos.setFont(Theme.FONT_SMALL);
+        photoPos.setForeground(Theme.TEXT_MUTED);
+        photoPos.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+
+        jButton8 = new javax.swing.JButton("Upload Photo");
+        jButton8.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+        jButton8.setMaximumSize(new java.awt.Dimension(150, 30));
+        Theme.secondaryButton(jButton8);
+        jButton8.addActionListener(e -> jButton8ActionPerformed(null));
+
+        photoPane.add(javax.swing.Box.createVerticalStrut(4));
+        photoPane.add(jLabel5);
+        photoPane.add(javax.swing.Box.createVerticalStrut(12));
+        photoPane.add(photoName);
+        photoPane.add(javax.swing.Box.createVerticalStrut(4));
+        photoPane.add(photoPos);
+        photoPane.add(javax.swing.Box.createVerticalStrut(16));
+        photoPane.add(jButton8);
+
+        SwingUtilities.invokeLater(() -> setProfileImage(jLabel5, currentUser != null ? currentUser.getuEmpId() : ""));
+
+        // ── Right: Detail sections ────────────────────────────────────────────
+        javax.swing.JPanel rightPane = new javax.swing.JPanel();
+        rightPane.setLayout(new javax.swing.BoxLayout(rightPane, javax.swing.BoxLayout.Y_AXIS));
+        rightPane.setBackground(Theme.PAGE_BG);
+
+        // Personal Info section
+        rightPane.add(buildInfoSection("Personal Information", new String[][]{
+            {"Employee ID:",  (currentUser != null) ? currentUser.getuEmpId() : ""},
+            {"Full Name:",    (currentUser != null) ? currentUser.getuFirstName() + " " + currentUser.getuLastName() : ""},
+            {"Birthday:",     (currentUser != null) ? currentUser.getuDob() : ""},
+            {"Address:",      (currentUser != null) ? currentUser.getuAddress() : ""},
+            {"Phone:",        (currentUser != null) ? currentUser.getuPhoneNumber() : ""}
+        }));
+        rightPane.add(javax.swing.Box.createVerticalStrut(12));
+
+        // Employment Details
+        rightPane.add(buildInfoSection("Employment Details", new String[][]{
+            {"Status:",     (currentUser != null) ? currentUser.getuStatus() : ""},
+            {"Position:",   (currentUser != null) ? currentUser.getuPosition() : ""},
+            {"Supervisor:", (currentUser != null) ? currentUser.getuImmediateSupervisor() : ""}
+        }));
+        rightPane.add(javax.swing.Box.createVerticalStrut(12));
+
+        // Government IDs
+        rightPane.add(buildInfoSection("Government IDs", new String[][]{
+            {"SSS #:",       (currentUser != null) ? currentUser.getuSSS() : ""},
+            {"PhilHealth #:", (currentUser != null) ? currentUser.getuPhilHealth() : ""},
+            {"TIN #:",       (currentUser != null) ? currentUser.getuTIN() : ""},
+            {"Pag-IBIG #:",  (currentUser != null) ? currentUser.getuPagIbig() : ""}
+        }));
+
+        javax.swing.JScrollPane rightScroll = new javax.swing.JScrollPane(rightPane,
+                javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        rightScroll.setBorder(null);
+        rightScroll.getViewport().setBackground(Theme.PAGE_BG);
+
+        body.add(photoPane,   java.awt.BorderLayout.WEST);
+        body.add(rightScroll, java.awt.BorderLayout.CENTER);
+
+        root.add(body, java.awt.BorderLayout.CENTER);
+        return root;
+    }
+
+    /** Build a labelled info section card. rows = {{"Label", "value"}, ...} */
+    private javax.swing.JPanel buildInfoSection(String title, String[][] rows) {
+        javax.swing.JPanel card = new javax.swing.JPanel(new java.awt.BorderLayout(0, 4));
+        card.setBackground(Theme.CARD_BG);
+        card.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(Theme.BORDER_COLOR, 1),
+            javax.swing.BorderFactory.createEmptyBorder(12, 16, 12, 16)
+        ));
+        card.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+        card.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, card.getPreferredSize().height + 300));
+
+        javax.swing.JLabel titleLbl = new javax.swing.JLabel(title);
+        titleLbl.setFont(Theme.FONT_HEADER);
+        titleLbl.setForeground(Theme.PRIMARY_BLUE);
+        titleLbl.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, Theme.BORDER_COLOR),
+            javax.swing.BorderFactory.createEmptyBorder(0, 0, 8, 0)
+        ));
+        card.add(titleLbl, java.awt.BorderLayout.NORTH);
+
+        javax.swing.JPanel grid = new javax.swing.JPanel(new java.awt.GridLayout(rows.length, 2, 8, 4));
+        grid.setBackground(Theme.CARD_BG);
+        grid.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 0, 0, 0));
+
+        for (String[] row : rows) {
+            javax.swing.JLabel keyLbl = new javax.swing.JLabel(row[0]);
+            keyLbl.setFont(Theme.FONT_BODY);
+            keyLbl.setForeground(Theme.TEXT_MUTED);
+
+            javax.swing.JLabel valLbl = new javax.swing.JLabel(row[1]);
+            valLbl.setFont(Theme.FONT_BODY);
+            valLbl.setForeground(Theme.TEXT_PRIMARY);
+
+            grid.add(keyLbl);
+            grid.add(valLbl);
+        }
+        card.add(grid, java.awt.BorderLayout.CENTER);
+        return card;
+    }
+
+    /** Build a placeholder card for nav items that open a modal. */
+    private javax.swing.JPanel buildPlaceholderCard(String title, String icon, String desc, java.awt.Color accent) {
+        javax.swing.JPanel p = new javax.swing.JPanel(new java.awt.GridBagLayout());
+        p.setBackground(Theme.PAGE_BG);
+
+        javax.swing.JPanel card = new javax.swing.JPanel();
+        card.setLayout(new javax.swing.BoxLayout(card, javax.swing.BoxLayout.Y_AXIS));
+        card.setBackground(Theme.CARD_BG);
+        card.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createMatteBorder(4, 0, 0, 0, accent),
             javax.swing.BorderFactory.createCompoundBorder(
                 javax.swing.BorderFactory.createLineBorder(Theme.BORDER_COLOR, 1),
-                javax.swing.BorderFactory.createEmptyBorder(10, 12, 10, 12)
+                javax.swing.BorderFactory.createEmptyBorder(30, 40, 30, 40)
             )
         ));
-        // Profile info labels
-        for (javax.swing.JLabel lbl : new javax.swing.JLabel[]{
-                jLabel6, jLabel7, jLabel8, jLabel9,
-                jLabel10, jLabel11, jLabel12, jLabel14}) {
-            lbl.setFont(Theme.FONT_BODY);
-            lbl.setForeground(Theme.TEXT_PRIMARY);
-        }
-        jLabel5.setBackground(Theme.CARD_BG);
-        jLabel5.setOpaque(true);
 
-        // Upload button
-        Theme.secondaryButton(jButton8);
-        jButton8.setText("Upload Photo");
+        javax.swing.JLabel iconLbl = new javax.swing.JLabel(icon);
+        iconLbl.setFont(new java.awt.Font("Segoe UI Emoji", java.awt.Font.PLAIN, 40));
+        iconLbl.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
 
-        // ── Dashboard panel (jPanel2) — styled in setupJPanel2() ──
-        jPanel2.setBackground(Theme.PAGE_BG);
+        javax.swing.JLabel titleLbl = new javax.swing.JLabel(title);
+        titleLbl.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
+        titleLbl.setForeground(accent);
+        titleLbl.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+
+        javax.swing.JLabel descLbl = new javax.swing.JLabel("<html><center>" + desc + "</center></html>");
+        descLbl.setFont(Theme.FONT_BODY);
+        descLbl.setForeground(Theme.TEXT_MUTED);
+        descLbl.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+
+        card.add(iconLbl);
+        card.add(javax.swing.Box.createVerticalStrut(10));
+        card.add(titleLbl);
+        card.add(javax.swing.Box.createVerticalStrut(6));
+        card.add(descLbl);
+
+        p.add(card);
+        return p;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  KEPT (legacy stubs — called by generated action handlers)
+    // ════════════════════════════════════════════════════════════════════════
+    private void applyTheme() { /* replaced by buildDashboard() */ }
+    private void addLeaveButtons() { /* replaced by buildDashboard() */ }
+    private void setupJPanel2() { /* replaced by buildProfileCard() */ }
+    private javax.swing.JLabel makeDetailRow(String f, Object v) { return new javax.swing.JLabel(); }
+    private double parseDoubleOrDefault(Object o) {
+        try { return Double.parseDouble(o.toString()); } catch (Exception e) { return 0; }
     }
 
     // Default constructor for GUI builder compatibility (not used in production)
@@ -321,205 +809,6 @@ public class HomePage extends javax.swing.JFrame {
         }
         label.setHorizontalAlignment(SwingConstants.CENTER);
         label.setVerticalAlignment(SwingConstants.CENTER);
-    }
-
-    private void setupJPanel2() {
-        // ── Root: BorderLayout ──────────────────────────────────────────────
-        jPanel2.setLayout(new java.awt.BorderLayout(0, 0));
-        jPanel2.setBackground(Theme.PAGE_BG);
-        jPanel2.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
-
-        // ────────────────────────────────────────────────────────────────────
-        // 1. WELCOME BANNER (NORTH)
-        // ────────────────────────────────────────────────────────────────────
-        javax.swing.JPanel bannerPanel = new javax.swing.JPanel(new java.awt.BorderLayout(8, 2));
-        bannerPanel.setBackground(Theme.PRIMARY_BLUE);
-        bannerPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(14, 18, 14, 18));
-
-        String firstName = (currentUser != null) ? currentUser.getuFirstName() : "Employee";
-        javax.swing.JLabel welcomeLabel = new javax.swing.JLabel("Welcome back, " + firstName + "!");
-        welcomeLabel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 17));
-        welcomeLabel.setForeground(Theme.TEXT_ON_DARK);
-
-        String dept = (currentUser != null) ? currentUser.getuPosition() : "";
-        javax.swing.JLabel posLabel = new javax.swing.JLabel(dept + "  |  MotorPH Philippines");
-        posLabel.setFont(Theme.FONT_SMALL);
-        posLabel.setForeground(new java.awt.Color(0xBFDBFE)); // light blue tint
-
-        bannerPanel.add(welcomeLabel, java.awt.BorderLayout.CENTER);
-        bannerPanel.add(posLabel,     java.awt.BorderLayout.SOUTH);
-        jPanel2.add(bannerPanel, java.awt.BorderLayout.NORTH);
-
-        // ────────────────────────────────────────────────────────────────────
-        // 2. STAT METRIC CARDS ROW  (below banner)
-        // ────────────────────────────────────────────────────────────────────
-        java.text.NumberFormat peso = java.text.NumberFormat.getNumberInstance(new java.util.Locale("en", "PH"));
-        peso.setMaximumFractionDigits(2);
-        peso.setMinimumFractionDigits(2);
-
-        String basicSalStr   = "₱ –";
-        String semiMonthStr  = "₱ –";
-        String hourlyStr     = "₱ –";
-        String allowTotalStr = "₱ –";
-
-        if (currentUser != null) {
-            try {
-                double basic     = Double.parseDouble(currentUser.getuBasicSalary().toString());
-                double semi      = Double.parseDouble(currentUser.getuGrossSemiRate().toString());
-                double hourly    = Double.parseDouble(currentUser.getuHourlyRate().toString());
-                double rice      = Double.parseDouble(currentUser.getuRiceSubsidy().toString());
-                double phone     = Double.parseDouble(currentUser.getuPhoneAllowance().toString());
-                double clothing  = Double.parseDouble(currentUser.getuClothingAllowance().toString());
-                double allowTotal = rice + phone + clothing;
-                basicSalStr   = "₱" + peso.format(basic);
-                semiMonthStr  = "₱" + peso.format(semi);
-                hourlyStr     = "₱" + peso.format(hourly);
-                allowTotalStr = "₱" + peso.format(allowTotal);
-            } catch (NumberFormatException ignored) {}
-        }
-
-        javax.swing.JPanel statsRow = new javax.swing.JPanel(new java.awt.GridLayout(1, 4, 10, 0));
-        statsRow.setBackground(Theme.PAGE_BG);
-        statsRow.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 12, 8, 12));
-
-        statsRow.add(Theme.statCard("Basic Salary",      basicSalStr,   Theme.STAT_INDIGO));
-        statsRow.add(Theme.statCard("Semi-monthly Rate", semiMonthStr,  Theme.STAT_TEAL));
-        statsRow.add(Theme.statCard("Hourly Rate",       hourlyStr,     Theme.STAT_EMERALD));
-        statsRow.add(Theme.statCard("Total Allowances",  allowTotalStr, Theme.STAT_AMBER));
-
-        // ────────────────────────────────────────────────────────────────────
-        // 3. TWO-COLUMN DETAIL SECTIONS (CENTER)
-        // ────────────────────────────────────────────────────────────────────
-        javax.swing.JPanel detailsWrap = new javax.swing.JPanel(new java.awt.GridLayout(1, 2, 10, 0));
-        detailsWrap.setBackground(Theme.PAGE_BG);
-        detailsWrap.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 12, 12, 12));
-
-        // ── LEFT: Government & Contributions ──
-        javax.swing.JPanel govCard = new javax.swing.JPanel();
-        govCard.setLayout(new javax.swing.BoxLayout(govCard, javax.swing.BoxLayout.Y_AXIS));
-        govCard.setBackground(Theme.CARD_BG);
-        govCard.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-            javax.swing.BorderFactory.createLineBorder(Theme.BORDER_COLOR, 1),
-            javax.swing.BorderFactory.createEmptyBorder(12, 14, 12, 14)
-        ));
-
-        jLabelGovHeader = Theme.sectionHeader("Government & Contributions", Theme.STAT_INDIGO);
-        jLabelGovHeader.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
-        govCard.add(jLabelGovHeader);
-        govCard.add(javax.swing.Box.createVerticalStrut(8));
-
-        jLabelSSS         = makeDetailRow("SSS Number",       (currentUser != null) ? currentUser.getuSSS() : "");
-        jLabelPhilhealth  = makeDetailRow("PhilHealth No.",   (currentUser != null) ? currentUser.getuPhilHealth() : "");
-        jLabelTIN         = makeDetailRow("TIN Number",       (currentUser != null) ? currentUser.getuTIN() : "");
-        jLabelPagibig     = makeDetailRow("Pag-IBIG Number",  (currentUser != null) ? currentUser.getuPagIbig() : "");
-
-        for (javax.swing.JLabel lbl : new javax.swing.JLabel[]{jLabelSSS, jLabelPhilhealth, jLabelTIN, jLabelPagibig}) {
-            lbl.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
-            govCard.add(lbl);
-            govCard.add(javax.swing.Box.createVerticalStrut(6));
-        }
-
-        // ── RIGHT: Pay Breakdown ──
-        javax.swing.JPanel payCard = new javax.swing.JPanel();
-        payCard.setLayout(new javax.swing.BoxLayout(payCard, javax.swing.BoxLayout.Y_AXIS));
-        payCard.setBackground(Theme.CARD_BG);
-        payCard.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-            javax.swing.BorderFactory.createLineBorder(Theme.BORDER_COLOR, 1),
-            javax.swing.BorderFactory.createEmptyBorder(12, 14, 12, 14)
-        ));
-
-        jLabelPayHeader = Theme.sectionHeader("Pay Details", Theme.STAT_TEAL);
-        jLabelPayHeader.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
-        payCard.add(jLabelPayHeader);
-        payCard.add(javax.swing.Box.createVerticalStrut(8));
-
-        jLabelBasicSalary = makeDetailRow("Basic Salary",       basicSalStr);
-        jLabelGrossSemi   = makeDetailRow("Gross Semi-monthly", semiMonthStr);
-
-        javax.swing.JLabel sep = Theme.sectionHeader("Allowances", Theme.STAT_AMBER);
-        sep.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
-
-        jLabelAllowHeader     = sep;
-        jLabelHourlyRate      = makeDetailRow("Hourly Rate",        hourlyStr);
-        jLabelRiceSubsidy     = makeDetailRow("Rice Subsidy",       (currentUser != null) ? "₱" + peso.format(parseDoubleOrDefault(currentUser.getuRiceSubsidy())) : "₱ –");
-        jLabelPhoneAllowance  = makeDetailRow("Phone Allowance",    (currentUser != null) ? "₱" + peso.format(parseDoubleOrDefault(currentUser.getuPhoneAllowance())) : "₱ –");
-        jLabelClothingAllowance = makeDetailRow("Clothing Allow.",  (currentUser != null) ? "₱" + peso.format(parseDoubleOrDefault(currentUser.getuClothingAllowance())) : "₱ –");
-
-        for (java.awt.Component c : new java.awt.Component[]{
-                jLabelBasicSalary, jLabelGrossSemi,
-                javax.swing.Box.createVerticalStrut(8), sep, javax.swing.Box.createVerticalStrut(4),
-                jLabelHourlyRate, jLabelRiceSubsidy, jLabelPhoneAllowance, jLabelClothingAllowance}) {
-            if (c instanceof javax.swing.JLabel lbl) lbl.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
-            payCard.add(c);
-            if (c instanceof javax.swing.JLabel) payCard.add(javax.swing.Box.createVerticalStrut(6));
-        }
-
-        detailsWrap.add(govCard);
-        detailsWrap.add(payCard);
-
-        // ── Assemble CENTER section (stats + details) ──
-        javax.swing.JPanel centerSection = new javax.swing.JPanel(new java.awt.BorderLayout());
-        centerSection.setBackground(Theme.PAGE_BG);
-        centerSection.add(statsRow,    java.awt.BorderLayout.NORTH);
-        centerSection.add(detailsWrap, java.awt.BorderLayout.CENTER);
-
-        jPanel2.add(centerSection, java.awt.BorderLayout.CENTER);
-    }
-
-    /** Create a label showing "  ● Field:  Value" with muted field name and primary value. */
-    private javax.swing.JLabel makeDetailRow(String field, Object value) {
-        String v = (value != null) ? value.toString() : "–";
-        javax.swing.JLabel lbl = new javax.swing.JLabel(
-            "<html><span style='color:#64748B;font-size:11px'>" + field + "</span>"
-            + "<br><span style='color:#1E293B;font-size:12px'><b>" + v + "</b></span></html>"
-        );
-        lbl.setFont(Theme.FONT_BODY);
-        lbl.setBorder(javax.swing.BorderFactory.createEmptyBorder(2, 0, 2, 0));
-        return lbl;
-    }
-
-    /** Safe double parser with 0.0 default. */
-    private double parseDoubleOrDefault(Object obj) {
-        if (obj == null) return 0.0;
-        try { return Double.parseDouble(obj.toString()); } catch (NumberFormatException e) { return 0.0; }
-    }
-
-    /**
-     * Adds Leave navigation buttons to jPanel1 (the sidebar) programmatically
-     * after initComponents().  The "Request Leave" button is visible to all
-     * employees; "Leave Approval" is restricted to HR / Manager / Admin.
-     */
-    private void addLeaveButtons() {
-        // "Request Leave" — all employees
-        javax.swing.JButton btnLeaveRequest = new javax.swing.JButton("Request Leave");
-        btnLeaveRequest.addActionListener(e -> {
-            new com.gui.Leave.LeaveRequestForm(
-                    com.motorph.util.AppContext.getInstance().getCurrentEmployee()
-            ).setVisible(true);
-        });
-        jPanel1.add(btnLeaveRequest);
-
-        // "Leave Approval" — HR / Manager / Admin only
-        String pos = currentUser.getuPosition();
-        boolean canApprove = pos.equals("HR Manager")
-                || pos.equals("HR Team Leader")
-                || pos.equals("HR Rank and File")
-                || pos.equals("Chief Executive Officer")
-                || pos.equals("Chief Operating Officer")
-                || pos.equals("Chief Finance Officer")
-                || pos.equals("Payroll Manager")
-                || pos.equals("Account Manager")
-                || pos.equals("Accounting Head")
-                || pos.equals("IT Operations and Systems");
-        if (canApprove) {
-            javax.swing.JButton btnLeaveApproval = new javax.swing.JButton("Leave Approval");
-            btnLeaveApproval.addActionListener(e -> {
-                new com.gui.Leave.LeaveApprovalForm(
-                        com.motorph.util.AppContext.getInstance().getCurrentEmployee()
-                ).setVisible(true);
-            });
-            jPanel1.add(btnLeaveApproval);
-        }
     }
 
     /**
