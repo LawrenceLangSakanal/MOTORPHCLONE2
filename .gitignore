@@ -1,0 +1,12 @@
+build/
+dist/
+
+# Bundled JDK (too large for GitHub)
+.vscode/openJdk-25/
+
+# NetBeans private
+nbproject/private/
+
+# OS files
+.DS_Store
+Thumbs.db
