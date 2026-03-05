@@ -29,6 +29,8 @@ import java.io.PrintWriter;
 import java.awt.*;
 import java.util.Date;
 import java.text.SimpleDateFormat;
+import java.text.NumberFormat;
+import java.util.Locale;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import javax.swing.JFileChooser;
@@ -117,70 +119,82 @@ public class HomePage extends javax.swing.JFrame {
 
     // ── Theme Application ───────────────────────────────────────────────
     private void applyTheme() {
-        // ---- Content pane & main frame ----
+        // ── Content pane ──
         getContentPane().setBackground(Theme.PAGE_BG);
 
-        // ---- Sidebar (jPanel1) ----
+        // ── Sidebar (jPanel1) ──
         jPanel1.setBackground(Theme.SIDEBAR_BG);
-        jPanel1.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
+        jPanel1.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 1));
+        // Right-edge separator line
+        jPanel1.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 0, 1, new java.awt.Color(0x1E293B)));
 
         // Sidebar MENU label
+        jLabel2.setText("MOTORPH");
         jLabel2.setForeground(Theme.TEXT_ON_DARK);
-        jLabel2.setFont(Theme.FONT_HEADER);
+        jLabel2.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
         jLabel2.setBackground(Theme.SIDEBAR_BG);
         jLabel2.setOpaque(true);
+        jLabel2.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(0x1E293B)),
+            javax.swing.BorderFactory.createEmptyBorder(6, 0, 6, 0)
+        ));
 
-        // Date / Time labels at top of sidebar
-        jLabel3.setForeground(Theme.BORDER_COLOR);
+        // Date / Time labels
+        jLabel3.setForeground(new java.awt.Color(0x94A3B8));
         jLabel3.setFont(Theme.FONT_SMALL);
         jLabel3.setBackground(Theme.SIDEBAR_BG);
         jLabel3.setOpaque(true);
-        jLabel4.setForeground(Theme.BORDER_COLOR);
+        jLabel4.setForeground(new java.awt.Color(0x94A3B8));
         jLabel4.setFont(Theme.FONT_SMALL);
         jLabel4.setBackground(Theme.SIDEBAR_BG);
         jLabel4.setOpaque(true);
 
-        // Logo label background
+        // Logo label
         jLabel1.setBackground(Theme.SIDEBAR_BG);
         jLabel1.setOpaque(true);
 
-        // ---- Sidebar navigation buttons ----
-        // jButton1 (Update Profile) is a LOCAL variable in initComponents(), so
-        // style ALL buttons in jPanel1 via iteration, then override specific ones.
+        // ── Sidebar navigation buttons ──
         for (java.awt.Component c : jPanel1.getComponents()) {
             if (c instanceof javax.swing.JButton btn) {
                 if (btn == jButton4) {
-                    Theme.successButton(btn); btn.setText("Clock In");
+                    Theme.successButton(btn);
+                    btn.setText("▶  Clock In");
                 } else if (btn == jButton5) {
-                    Theme.dangerButton(btn);  btn.setText("Clock Out");
+                    Theme.dangerButton(btn);
+                    btn.setText("■  Clock Out");
+                } else if (btn == jButton6) {
+                    Theme.dangerButton(btn);
+                    btn.setText("⇠  Logout");
                 } else {
                     Theme.sidebarButton(btn);
                 }
             }
         }
-        // Rename the known field-level buttons
-        jButton2.setText("  Payroll");
-        jButton3.setText("  Employees");
-        jButton7.setText("  Attendance");
-        jButton9.setText("  System Maintenance");
-        jButton10.setText("  View Payroll Details");
+        // Rename the known field-level buttons with icon prefixes
+        jButton2.setText("  \uD83D\uDCB3  Payroll");
+        jButton3.setText("  \uD83D\uDC65  Employees");
+        jButton7.setText("  \uD83D\uDDD3  Attendance");
+        jButton9.setText("  \u2699  System Maintenance");
+        jButton10.setText("  \uD83D\uDCC4  View Payroll Details");
 
-        // ---- Logout button ----
+        // Logout button - positioned separately
         Theme.dangerButton(jButton6);
         jButton6.setText("Logout");
 
-        // ---- Profile panel (jPanel3) ----
+        // ── Profile card (jPanel3) ──
         jPanel3.setBackground(Theme.CARD_BG);
         jPanel3.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-            javax.swing.BorderFactory.createLineBorder(Theme.BORDER_COLOR, 1),
-            javax.swing.BorderFactory.createEmptyBorder(10, 12, 10, 12)
+            javax.swing.BorderFactory.createMatteBorder(3, 0, 0, 0, Theme.PRIMARY_BLUE),  // blue top accent
+            javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(Theme.BORDER_COLOR, 1),
+                javax.swing.BorderFactory.createEmptyBorder(10, 12, 10, 12)
+            )
         ));
         // Profile info labels
-        java.awt.Font infoFont = Theme.FONT_BODY;
         for (javax.swing.JLabel lbl : new javax.swing.JLabel[]{
                 jLabel6, jLabel7, jLabel8, jLabel9,
                 jLabel10, jLabel11, jLabel12, jLabel14}) {
-            lbl.setFont(infoFont);
+            lbl.setFont(Theme.FONT_BODY);
             lbl.setForeground(Theme.TEXT_PRIMARY);
         }
         jLabel5.setBackground(Theme.CARD_BG);
@@ -190,43 +204,8 @@ public class HomePage extends javax.swing.JFrame {
         Theme.secondaryButton(jButton8);
         jButton8.setText("Upload Photo");
 
-        // ---- Additional details panel (jPanel2) ----
-        jPanel2.setBackground(Theme.CARD_BG);
-        jPanel2.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-            javax.swing.BorderFactory.createTitledBorder(
-                javax.swing.BorderFactory.createLineBorder(Theme.BORDER_COLOR, 1),
-                "Additional Details",
-                javax.swing.border.TitledBorder.LEFT,
-                javax.swing.border.TitledBorder.TOP,
-                Theme.FONT_HEADER,
-                Theme.PRIMARY_BLUE
-            ),
-            javax.swing.BorderFactory.createEmptyBorder(4, 8, 8, 8)
-        ));
-        // Style all dynamic labels in jPanel2
-        java.awt.Color headerColor = Theme.PRIMARY_BLUE;
-        if (jLabelGovHeader != null) {
-            jLabelGovHeader.setFont(Theme.FONT_HEADER);
-            jLabelGovHeader.setForeground(headerColor);
-        }
-        if (jLabelPayHeader != null) {
-            jLabelPayHeader.setFont(Theme.FONT_HEADER);
-            jLabelPayHeader.setForeground(headerColor);
-        }
-        if (jLabelAllowHeader != null) {
-            jLabelAllowHeader.setFont(Theme.FONT_HEADER);
-            jLabelAllowHeader.setForeground(headerColor);
-        }
-        for (javax.swing.JLabel lbl : new javax.swing.JLabel[]{
-                jLabelSSS, jLabelPhilhealth, jLabelTIN, jLabelPagibig,
-                jLabelBasicSalary, jLabelGrossSemi,
-                jLabelHourlyRate, jLabelRiceSubsidy,
-                jLabelPhoneAllowance, jLabelClothingAllowance}) {
-            if (lbl != null) {
-                lbl.setFont(Theme.FONT_BODY);
-                lbl.setForeground(Theme.TEXT_PRIMARY);
-            }
-        }
+        // ── Dashboard panel (jPanel2) — styled in setupJPanel2() ──
+        jPanel2.setBackground(Theme.PAGE_BG);
     }
 
     // Default constructor for GUI builder compatibility (not used in production)
@@ -250,24 +229,7 @@ public class HomePage extends javax.swing.JFrame {
             jLabel11.setText("<html><b>Phone Number:</b> " + currentUser.getuPhoneNumber() + "</html>");
             jLabel12.setText("<html><b>Immediate Supervisor:</b><br>" + currentUser.getuImmediateSupervisor() + "</html>");
             jLabel14.setText("<html><b>Address:</b> " + currentUser.getuAddress() + "</html>");
-
-            //jPanel2 Values
-            jLabelSSS.setText("SSS Number: " + currentUser.getuSSS());
-            jLabelPhilhealth.setText("Philhealth Number: " + currentUser.getuPhilHealth());
-            jLabelTIN.setText("TIN Number: " + currentUser.getuTIN());
-            jLabelPagibig.setText("Pag-ibig Number: " + currentUser.getuPagIbig());
-
-            jLabelBasicSalary.setText("Basic Salary: " + currentUser.getuBasicSalary());
-            jLabelGrossSemi.setText("Gross Semi-monthly Rate: " + currentUser.getuGrossSemiRate());
-
-            jLabelHourlyRate.setText("Hourly Rate: " + currentUser.getuHourlyRate());
-            jLabelRiceSubsidy.setText("Rice Subsidy: " + currentUser.getuRiceSubsidy());
-            jLabelPhoneAllowance.setText("Phone Allowance: " + currentUser.getuPhoneAllowance());
-            jLabelClothingAllowance.setText("Clothing Allowance: " + currentUser.getuClothingAllowance());
-
-            // Optionally set profile image:
-            // jLabel1.setIcon(new ImageIcon(getClass().getResource("/com/gui/profile.png")));
-            // jLabel5.setIcon(...) for main photo
+            // jPanel2 labels are built inline in setupJPanel2() — no update needed here
         }
     }
 
@@ -362,44 +324,164 @@ public class HomePage extends javax.swing.JFrame {
     }
 
     private void setupJPanel2() {
-        jPanel2.setBorder(javax.swing.BorderFactory.createTitledBorder("Additional Details"));
-        jPanel2.setLayout(new java.awt.GridLayout(0, 1));
+        // ── Root: BorderLayout ──────────────────────────────────────────────
+        jPanel2.setLayout(new java.awt.BorderLayout(0, 0));
+        jPanel2.setBackground(Theme.PAGE_BG);
+        jPanel2.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
 
-        jLabelGovHeader = new javax.swing.JLabel("Government & Contributions:");
-        jLabelGovHeader.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
-        jLabelSSS = new javax.swing.JLabel("SSS Number: ");
-        jLabelPhilhealth = new javax.swing.JLabel("Philhealth Number: ");
-        jLabelTIN = new javax.swing.JLabel("TIN Number: ");
-        jLabelPagibig = new javax.swing.JLabel("Pag-ibig Number: ");
+        // ────────────────────────────────────────────────────────────────────
+        // 1. WELCOME BANNER (NORTH)
+        // ────────────────────────────────────────────────────────────────────
+        javax.swing.JPanel bannerPanel = new javax.swing.JPanel(new java.awt.BorderLayout(8, 2));
+        bannerPanel.setBackground(Theme.PRIMARY_BLUE);
+        bannerPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(14, 18, 14, 18));
 
-        jLabelPayHeader = new javax.swing.JLabel("Pay Details:");
-        jLabelPayHeader.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
-        jLabelBasicSalary = new javax.swing.JLabel("Basic Salary: ");
-        jLabelGrossSemi = new javax.swing.JLabel("Gross Semi-monthly Rate: ");
+        String firstName = (currentUser != null) ? currentUser.getuFirstName() : "Employee";
+        javax.swing.JLabel welcomeLabel = new javax.swing.JLabel("Welcome back, " + firstName + "!");
+        welcomeLabel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 17));
+        welcomeLabel.setForeground(Theme.TEXT_ON_DARK);
 
-        jLabelAllowHeader = new javax.swing.JLabel("Allowances:");
-        jLabelAllowHeader.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
-        jLabelHourlyRate = new javax.swing.JLabel("Hourly Rate: ");
-        jLabelRiceSubsidy = new javax.swing.JLabel("Rice Subsidy: ");
-        jLabelPhoneAllowance = new javax.swing.JLabel("Phone Allowance: ");
-        jLabelClothingAllowance = new javax.swing.JLabel("Clothing Allowance: ");
+        String dept = (currentUser != null) ? currentUser.getuPosition() : "";
+        javax.swing.JLabel posLabel = new javax.swing.JLabel(dept + "  |  MotorPH Philippines");
+        posLabel.setFont(Theme.FONT_SMALL);
+        posLabel.setForeground(new java.awt.Color(0xBFDBFE)); // light blue tint
 
-        // Add labels to jPanel2
-        jPanel2.add(jLabelGovHeader);
-        jPanel2.add(jLabelSSS);
-        jPanel2.add(jLabelPhilhealth);
-        jPanel2.add(jLabelTIN);
-        jPanel2.add(jLabelPagibig);
+        bannerPanel.add(welcomeLabel, java.awt.BorderLayout.CENTER);
+        bannerPanel.add(posLabel,     java.awt.BorderLayout.SOUTH);
+        jPanel2.add(bannerPanel, java.awt.BorderLayout.NORTH);
 
-        jPanel2.add(jLabelPayHeader);
-        jPanel2.add(jLabelBasicSalary);
-        jPanel2.add(jLabelGrossSemi);
+        // ────────────────────────────────────────────────────────────────────
+        // 2. STAT METRIC CARDS ROW  (below banner)
+        // ────────────────────────────────────────────────────────────────────
+        java.text.NumberFormat peso = java.text.NumberFormat.getNumberInstance(new java.util.Locale("en", "PH"));
+        peso.setMaximumFractionDigits(2);
+        peso.setMinimumFractionDigits(2);
 
-        jPanel2.add(jLabelAllowHeader);
-        jPanel2.add(jLabelHourlyRate);
-        jPanel2.add(jLabelRiceSubsidy);
-        jPanel2.add(jLabelPhoneAllowance);
-        jPanel2.add(jLabelClothingAllowance);
+        String basicSalStr   = "₱ –";
+        String semiMonthStr  = "₱ –";
+        String hourlyStr     = "₱ –";
+        String allowTotalStr = "₱ –";
+
+        if (currentUser != null) {
+            try {
+                double basic     = Double.parseDouble(currentUser.getuBasicSalary().toString());
+                double semi      = Double.parseDouble(currentUser.getuGrossSemiRate().toString());
+                double hourly    = Double.parseDouble(currentUser.getuHourlyRate().toString());
+                double rice      = Double.parseDouble(currentUser.getuRiceSubsidy().toString());
+                double phone     = Double.parseDouble(currentUser.getuPhoneAllowance().toString());
+                double clothing  = Double.parseDouble(currentUser.getuClothingAllowance().toString());
+                double allowTotal = rice + phone + clothing;
+                basicSalStr   = "₱" + peso.format(basic);
+                semiMonthStr  = "₱" + peso.format(semi);
+                hourlyStr     = "₱" + peso.format(hourly);
+                allowTotalStr = "₱" + peso.format(allowTotal);
+            } catch (NumberFormatException ignored) {}
+        }
+
+        javax.swing.JPanel statsRow = new javax.swing.JPanel(new java.awt.GridLayout(1, 4, 10, 0));
+        statsRow.setBackground(Theme.PAGE_BG);
+        statsRow.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 12, 8, 12));
+
+        statsRow.add(Theme.statCard("Basic Salary",      basicSalStr,   Theme.STAT_INDIGO));
+        statsRow.add(Theme.statCard("Semi-monthly Rate", semiMonthStr,  Theme.STAT_TEAL));
+        statsRow.add(Theme.statCard("Hourly Rate",       hourlyStr,     Theme.STAT_EMERALD));
+        statsRow.add(Theme.statCard("Total Allowances",  allowTotalStr, Theme.STAT_AMBER));
+
+        // ────────────────────────────────────────────────────────────────────
+        // 3. TWO-COLUMN DETAIL SECTIONS (CENTER)
+        // ────────────────────────────────────────────────────────────────────
+        javax.swing.JPanel detailsWrap = new javax.swing.JPanel(new java.awt.GridLayout(1, 2, 10, 0));
+        detailsWrap.setBackground(Theme.PAGE_BG);
+        detailsWrap.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 12, 12, 12));
+
+        // ── LEFT: Government & Contributions ──
+        javax.swing.JPanel govCard = new javax.swing.JPanel();
+        govCard.setLayout(new javax.swing.BoxLayout(govCard, javax.swing.BoxLayout.Y_AXIS));
+        govCard.setBackground(Theme.CARD_BG);
+        govCard.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(Theme.BORDER_COLOR, 1),
+            javax.swing.BorderFactory.createEmptyBorder(12, 14, 12, 14)
+        ));
+
+        jLabelGovHeader = Theme.sectionHeader("Government & Contributions", Theme.STAT_INDIGO);
+        jLabelGovHeader.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+        govCard.add(jLabelGovHeader);
+        govCard.add(javax.swing.Box.createVerticalStrut(8));
+
+        jLabelSSS         = makeDetailRow("SSS Number",       (currentUser != null) ? currentUser.getuSSS() : "");
+        jLabelPhilhealth  = makeDetailRow("PhilHealth No.",   (currentUser != null) ? currentUser.getuPhilHealth() : "");
+        jLabelTIN         = makeDetailRow("TIN Number",       (currentUser != null) ? currentUser.getuTIN() : "");
+        jLabelPagibig     = makeDetailRow("Pag-IBIG Number",  (currentUser != null) ? currentUser.getuPagIbig() : "");
+
+        for (javax.swing.JLabel lbl : new javax.swing.JLabel[]{jLabelSSS, jLabelPhilhealth, jLabelTIN, jLabelPagibig}) {
+            lbl.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+            govCard.add(lbl);
+            govCard.add(javax.swing.Box.createVerticalStrut(6));
+        }
+
+        // ── RIGHT: Pay Breakdown ──
+        javax.swing.JPanel payCard = new javax.swing.JPanel();
+        payCard.setLayout(new javax.swing.BoxLayout(payCard, javax.swing.BoxLayout.Y_AXIS));
+        payCard.setBackground(Theme.CARD_BG);
+        payCard.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(Theme.BORDER_COLOR, 1),
+            javax.swing.BorderFactory.createEmptyBorder(12, 14, 12, 14)
+        ));
+
+        jLabelPayHeader = Theme.sectionHeader("Pay Details", Theme.STAT_TEAL);
+        jLabelPayHeader.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+        payCard.add(jLabelPayHeader);
+        payCard.add(javax.swing.Box.createVerticalStrut(8));
+
+        jLabelBasicSalary = makeDetailRow("Basic Salary",       basicSalStr);
+        jLabelGrossSemi   = makeDetailRow("Gross Semi-monthly", semiMonthStr);
+
+        javax.swing.JLabel sep = Theme.sectionHeader("Allowances", Theme.STAT_AMBER);
+        sep.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+
+        jLabelAllowHeader     = sep;
+        jLabelHourlyRate      = makeDetailRow("Hourly Rate",        hourlyStr);
+        jLabelRiceSubsidy     = makeDetailRow("Rice Subsidy",       (currentUser != null) ? "₱" + peso.format(parseDoubleOrDefault(currentUser.getuRiceSubsidy())) : "₱ –");
+        jLabelPhoneAllowance  = makeDetailRow("Phone Allowance",    (currentUser != null) ? "₱" + peso.format(parseDoubleOrDefault(currentUser.getuPhoneAllowance())) : "₱ –");
+        jLabelClothingAllowance = makeDetailRow("Clothing Allow.",  (currentUser != null) ? "₱" + peso.format(parseDoubleOrDefault(currentUser.getuClothingAllowance())) : "₱ –");
+
+        for (java.awt.Component c : new java.awt.Component[]{
+                jLabelBasicSalary, jLabelGrossSemi,
+                javax.swing.Box.createVerticalStrut(8), sep, javax.swing.Box.createVerticalStrut(4),
+                jLabelHourlyRate, jLabelRiceSubsidy, jLabelPhoneAllowance, jLabelClothingAllowance}) {
+            if (c instanceof javax.swing.JLabel lbl) lbl.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+            payCard.add(c);
+            if (c instanceof javax.swing.JLabel) payCard.add(javax.swing.Box.createVerticalStrut(6));
+        }
+
+        detailsWrap.add(govCard);
+        detailsWrap.add(payCard);
+
+        // ── Assemble CENTER section (stats + details) ──
+        javax.swing.JPanel centerSection = new javax.swing.JPanel(new java.awt.BorderLayout());
+        centerSection.setBackground(Theme.PAGE_BG);
+        centerSection.add(statsRow,    java.awt.BorderLayout.NORTH);
+        centerSection.add(detailsWrap, java.awt.BorderLayout.CENTER);
+
+        jPanel2.add(centerSection, java.awt.BorderLayout.CENTER);
+    }
+
+    /** Create a label showing "  ● Field:  Value" with muted field name and primary value. */
+    private javax.swing.JLabel makeDetailRow(String field, Object value) {
+        String v = (value != null) ? value.toString() : "–";
+        javax.swing.JLabel lbl = new javax.swing.JLabel(
+            "<html><span style='color:#64748B;font-size:11px'>" + field + "</span>"
+            + "<br><span style='color:#1E293B;font-size:12px'><b>" + v + "</b></span></html>"
+        );
+        lbl.setFont(Theme.FONT_BODY);
+        lbl.setBorder(javax.swing.BorderFactory.createEmptyBorder(2, 0, 2, 0));
+        return lbl;
+    }
+
+    /** Safe double parser with 0.0 default. */
+    private double parseDoubleOrDefault(Object obj) {
+        if (obj == null) return 0.0;
+        try { return Double.parseDouble(obj.toString()); } catch (NumberFormatException e) { return 0.0; }
     }
 
     /**

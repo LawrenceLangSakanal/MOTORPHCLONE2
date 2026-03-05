@@ -52,33 +52,64 @@ public class LoginForm extends javax.swing.JFrame {
     // credentials.get("10001")[1] = lockoutStatus
     // ── Theme Application ─────────────────────────────────────────────────
     private void applyTheme() {
-        // Frame / content pane
+        // ── Frame / content pane ──
         getContentPane().setBackground(Theme.SIDEBAR_BG);
 
-        // Logo label - transparent on dark bg
+        // ── Brand banner above the logo ──
+        // Build a title strip at the very top of the content pane
+        javax.swing.JPanel brandPanel = new javax.swing.JPanel();
+        brandPanel.setLayout(new java.awt.BorderLayout(0, 2));
+        brandPanel.setBackground(Theme.SIDEBAR_BG);
+        brandPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(18, 0, 10, 0));
+
+        javax.swing.JLabel companyLabel = new javax.swing.JLabel("MotorPH", javax.swing.SwingConstants.CENTER);
+        companyLabel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 28));
+        companyLabel.setForeground(Theme.TEXT_ON_DARK);
+
+        javax.swing.JLabel taglineLabel = new javax.swing.JLabel("HR & Payroll Management System", javax.swing.SwingConstants.CENTER);
+        taglineLabel.setFont(Theme.FONT_SMALL);
+        taglineLabel.setForeground(Theme.TEXT_MUTED);
+
+        brandPanel.add(companyLabel, java.awt.BorderLayout.CENTER);
+        brandPanel.add(taglineLabel, java.awt.BorderLayout.SOUTH);
+
+        getContentPane().add(brandPanel, java.awt.BorderLayout.NORTH);
+
+        // ── Logo label ──
         jLabel1.setBackground(Theme.SIDEBAR_BG);
         jLabel1.setOpaque(true);
 
-        // Input: Employee ID field
+        // ── Subtle card wrapper for the form area ──
+        // Wrap the center/south UI in a rounded card feel via the content pane bg
+        getContentPane().setBackground(Theme.SIDEBAR_BG);
+
+        // ── Input fields ──
         Theme.styleTextField(jTextField1);
         jTextField1.setHorizontalAlignment(javax.swing.JTextField.LEFT);
-        jTextField1.setForeground(java.awt.Color.GRAY); // keep placeholder style
+        jTextField1.setForeground(java.awt.Color.GRAY);
+        jTextField1.setPreferredSize(new java.awt.Dimension(260, 36));
 
-        // Input: Password field
         Theme.stylePasswordField(jPasswordField1);
         jPasswordField1.setHorizontalAlignment(javax.swing.JTextField.LEFT);
-        jPasswordField1.setForeground(java.awt.Color.GRAY); // keep placeholder style
+        jPasswordField1.setForeground(java.awt.Color.GRAY);
+        jPasswordField1.setPreferredSize(new java.awt.Dimension(260, 36));
 
-        // Login button
-        Theme.primaryButton(jButton1);
-        jButton1.setText("  Log in");
-        jButton1.setPreferredSize(new java.awt.Dimension(130, 38));
+        // ── Login button ──
+        jButton1.setBackground(Theme.ACTION_BLUE);
+        jButton1.setForeground(Theme.TEXT_ON_DARK);
+        jButton1.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
+        jButton1.setFocusPainted(false);
+        jButton1.setBorderPainted(false);
+        jButton1.setOpaque(true);
+        jButton1.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        jButton1.setText("Sign In");
+        jButton1.setPreferredSize(new java.awt.Dimension(160, 40));
 
-        // Progress bar
+        // ── Progress bar ──
         jProgressBar1.setForeground(Theme.ACTION_BLUE);
         jProgressBar1.setBackground(Theme.SIDEBAR_HOVER);
 
-        // Icon labels (username/password icons) — match sidebar bg
+        // ── Icon labels ──
         jLabel3.setOpaque(false);
         jLabel4.setOpaque(false);
     }
