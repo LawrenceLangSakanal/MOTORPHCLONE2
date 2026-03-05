@@ -1,0 +1,30 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Compile MotorPH",
+            "type": "shell",
+            "command": "$env:JAVA_HOME = '${workspaceFolder}\\.vscode\\openJdk-25'; $env:PATH = \"$env:JAVA_HOME\\bin;$env:PATH\"; New-Item -ItemType Directory -Force -Path '${workspaceFolder}\\build\\classes' | Out-Null; $files = (Get-ChildItem -Path '${workspaceFolder}\\src' -Filter *.java -Recurse).FullName; javac --release 17 -d '${workspaceFolder}\\build\\classes' -cp '${workspaceFolder}\\lib\\*' -encoding UTF-8 $files",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$javac"],
+            "presentation": { "reveal": "always", "panel": "shared" }
+        },
+        {
+            "label": "Run MotorPH",
+            "type": "shell",
+            "command": "Copy-Item -Path '${workspaceFolder}\\src\\com\\gui\\images' -Destination '${workspaceFolder}\\build\\classes\\com\\gui\\images' -Recurse -Force; Copy-Item -Path '${workspaceFolder}\\src\\com\\csv' -Destination '${workspaceFolder}\\build\\classes\\com\\csv' -Recurse -Force; & '${workspaceFolder}\\.vscode\\openJdk-25\\bin\\java.exe' -cp '${workspaceFolder}\\build\\classes;${workspaceFolder}\\lib\\*' com.gui.Home.LoginForm",
+            "group": "test",
+            "dependsOn": "Compile MotorPH",
+            "presentation": { "reveal": "always", "panel": "shared" }
+        },
+        {
+            "label": "Clean Build",
+            "type": "shell",
+            "command": "Remove-Item -Recurse -Force '${workspaceFolder}\\build\\classes' -ErrorAction SilentlyContinue; New-Item -ItemType Directory -Force -Path '${workspaceFolder}\\build\\classes' | Out-Null; Write-Host 'Build cleaned.'",
+            "presentation": { "reveal": "always", "panel": "shared" }
+        }
+    ]
+}

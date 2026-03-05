@@ -1,12 +1,23 @@
+# Build outputs
 build/
 dist/
 
 # Bundled JDK (too large for GitHub)
 .vscode/openJdk-25/
 
-# NetBeans private
+# NetBeans private/generated
 nbproject/private/
 
-# OS files
+# NetBeans cache
+.nb-gradle/
+
+# OS & IDE files
 .DS_Store
 Thumbs.db
+*.iml
+.idea/
+*.class
+
+# Logs
+*.log
+nohup.out
